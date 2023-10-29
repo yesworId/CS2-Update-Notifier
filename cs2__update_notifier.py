@@ -1,7 +1,7 @@
 import requests
 from time import sleep
 
-from utils import read_file, update_file
+from utils import read_file, update_file, format_text
 import telegram_alert
 
 
@@ -20,19 +20,22 @@ def setup():
 def check_for_updates(url, headers, prev_gid):
     while True:
         try:
-            response = requests.get(url, headers=headers).json()
-            latest_update = response['appnews']['newsitems'][0]
+            response = requests.get(url, headers=headers)
+            data = response.json()
+            latest_update = data['appnews']['newsitems'][0]
             gid = latest_update['gid']
 
             if prev_gid is not None:
                 if gid != prev_gid:
                     prev_gid = gid
                     update_file(prev_gid)
+
+                    description = format_text(latest_update['contents'])
                     print(f"Found new update: {latest_update['title']}")
 
                     telegram_alert.send_alert(
-                        f"Title: {latest_update['title']}\n"
-                        f"Description: \n{latest_update['contents']}\n"
+                        f"{latest_update['title']}\n\n"
+                        f"{description}\n\n"
                         f"{latest_update['url']}"
                     )
                     sleep(6000)
